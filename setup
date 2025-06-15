@@ -1,0 +1,11 @@
+Stages of Air Path
+Ambient
+→ Inlet
+→ Fan → Bypass Split 
+→ LowPresComp → HighPresComp 
+→ Combustor 
+→ HighPresTurb → LowPresTurb 
+→ Mixer (optional) 
+→ CD Nozzle
+→ Exhaust
+
