@@ -1,3 +1,10 @@
+""" Sources:
+ - John D. Anderson, Modern Compressible Flow: With Historical Perspective, 
+3rd ed., McGraw-Hill, 2002.
+
+"""
+
+
 class inlet:
     def __init__(self, mach, press, temp):
         self.mach = mach
@@ -5,7 +12,16 @@ class inlet:
         self.temp = temp
         self.gamma = 1.4
         self.R = 287
-        
+
+        # Defining stagnation temp and pressure (ref: ae312 module 1 notes)
+    def stagnationTemperature(self, mach, temp, gamma):
+        stagtemp = temp * (1 + (gamma - 1)/2 * mach**2)
+        return stagtemp
+
+    def stagnationPressure(self, mach, press, gamma):
+        stagpress = press * (1 + (gamma - 1)/2 * mach**2)**(gamma/(gamma-1))
+        return stagpress 
+
 class fan:
     def __init__(self, stagpress, stagtemp, massflow, pressure_ratio, efficiency):
         self.stagpress = stagpress
@@ -87,3 +103,5 @@ class exhaust:
         self.bypaRatio = bypaRatio
         self.fuel_flow = fuel_flow
         self.fuel_heatingval = fuel_heatingval
+
+
