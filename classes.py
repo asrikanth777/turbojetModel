@@ -5,9 +5,10 @@
 ***Justifications will be given for them
 
  - John D. Anderson, Modern Compressible Flow: With Historical Perspective, 
-3rd ed., McGraw-Hill, 2002.
-- https://www.forecastinternational.com/archive/disp_pdf.cfm?DACH_RECNO=901
-- https://ntrs.nasa.gov/api/citations/20110020830/downloads/20110020830.pdf
+3rd ed., McGraw-Hill, 2002. (1)
+- https://www.forecastinternational.com/archive/disp_pdf.cfm?DACH_RECNO=901 (2)
+- https://ntrs.nasa.gov/api/citations/20110020830/downloads/20110020830.pdf (3)
+- https://soaneemrana.com/onewebmedia/MECHANICS%20AND%20THERMODYNAMICS1.pdf (4)
 """
 import math
 import numpy as np
@@ -27,10 +28,10 @@ class inlet:
         self.inletArea = 0.811
 
         # Defining stagnation temp and pressure (ref: ae312 module 1 notes)
-    def stagnationTemperature(self):
+    def stagnationTemperatureInlet(self):
         return self.temp * (1 + (self.gamma - 1)/2 * self.mach**2)
 
-    def stagnationPressure(self):
+    def stagnationPressureInlet(self):
         return self.press * (1 + (self.gamma - 1)/2 * self.mach**2)**(self.gamma / (self.gamma - 1))
 
     
@@ -43,19 +44,41 @@ class inlet:
         return mass_flow  # [kg/s]
     
     def compute(self):
-        self.Tt0 = self.stagnationTemperature(self.mach, self.temp, self.gamma)
-        self.Pt0 = self.stagnationPressure(self.mach, self.press, self.gamma)
+        self.Tt0 = self.stagnationTemperatureInlet(self.mach, self.temp, self.gamma)
+        self.Pt0 = self.stagnationPressureInlet(self.mach, self.press, self.gamma)
         self.massflow = self.massFlowCalc(self.mach, self.Tt0, self.Pt0, self.inletArea, self.gamma, self.R)
 
 
 class fan:
     # three-stage fan
-    def __init__(self, stagpress, stagtemp, massflow, pressure_ratio, efficiency):
+    def __init__(self, stagpress, stagtemp, massflow):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
-        self.pressure_ratio = 4  # Forecast International (PAT130A1) — full 3-stage F119 fan
-        self.efficiency = 0.857 # NASA TM-2011-216769 — experimental high-efficiency fan stage
+        self.pressure_ratio = 4  # (2) page 2
+        self.efficiency = 0.857 # (3) page 6 table 1
         self.massflow = massflow
+        self.gamma = 1.4
+        self.specificheat = 1004.5
+
+        # stagtemp change equation from (4) page 184, equation 5.49
+    def stagnationTemperatureFan(self):
+        gammaexpo = (self.gamma -1) / self.gamma
+        stagtempFan = self.stagtemp * (1 + (1/self.efficiency) * (self.pressure_ratio**gammaexpo - 1))
+        return stagtempFan
+
+    def stagnationPressureFan(self):
+        stagPressFan = self.stagpress * self.pressure_ratio
+        return stagPressFan
+    
+    def enthalpyRiseFan(self):
+        Tt_out = self.stagnationTemperatureFan()
+        delta_h = self.specificheat * (Tt_out - self.stagtemp)
+        return delta_h  # [J/kg]
+    
+    def workRequiredFan(self):
+        deltaH = self.enthalpyRiseFan()
+        power_done = self.massflow * deltaH 
+        return power_done
 
 
 class bypassSplit:
