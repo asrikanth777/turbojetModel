@@ -44,9 +44,14 @@ class inlet:
         return mass_flow  # [kg/s]
     
     def compute(self):
-        self.Tt0 = self.stagnationTemperatureInlet(self.mach, self.temp, self.gamma)
-        self.Pt0 = self.stagnationPressureInlet(self.mach, self.press, self.gamma)
-        self.massflow = self.massFlowCalc(self.mach, self.Tt0, self.Pt0, self.inletArea, self.gamma, self.R)
+        self.Tt0 = self.stagnationTemperatureInlet()
+        self.Pt0 = self.stagnationPressureInlet()
+        self.massflow = self.massFlowCalc()
+        return {
+        "Stagnation Temp (Tt0)": self.Tt0,
+        "Stagnation Press (Pt0)": self.Pt0,
+        "Mass Flow": self.massflow,
+    }
 
 
 class fan:
@@ -79,14 +84,39 @@ class fan:
         deltaH = self.enthalpyRiseFan()
         power_done = self.massflow * deltaH 
         return power_done
+    
+    def compute(self):
+        return {
+            "Stagnation Temp (out)": self.stagnationTemperatureFan(),
+            "Stagnation Press (out)": self.stagnationPressureFan(),
+            "Enthalpy Rise": self.enthalpyRiseFan(),
+            "Fan Work (W)": self.workRequiredFan(),
+        }
 
 
 class bypassSplit:
-    def __init__(self, bypaRatio, stagpress, massflow, stagtemp):
+    def __init__(self, stagpress, massflow, stagtemp):
         self.bypaRatio = 0.45
         self.stagpress = stagpress
         self.stagtemp = stagtemp
         self.massflow = massflow
+
+
+    # stag temp and pressure dont change across
+    def massflowCore(self):
+        coreMF = self.massflow * (1 -self.bypaRatio)
+        return coreMF
+    
+    def massflowBypass(self):
+        bypaMF = self.massflow * self.bypaRatio
+        return bypaMF
+    
+    def compute(self):
+        return {
+            "Core Mass Flow": self.massflowCore(),
+            "Bypass Mass Flow": self.massflowBypass(),
+            "Bypass Ratio": self.bypaRatio,
+        }
 
 
 class highPressureCompressor:
