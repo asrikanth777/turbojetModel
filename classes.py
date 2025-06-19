@@ -7,7 +7,7 @@
  - John D. Anderson, Modern Compressible Flow: With Historical Perspective, 
 3rd ed., McGraw-Hill, 2002. (1)
 - https://www.forecastinternational.com/archive/disp_pdf.cfm?DACH_RECNO=901 (2)
-- https://ntrs.nasa.gov/api/citations/20110020830/downloads/20110020830.pdf (3)
+- https://easychair.org/publications/preprint/CnsW/download? (3)
 - https://soaneemrana.com/onewebmedia/MECHANICS%20AND%20THERMODYNAMICS1.pdf (4)
 """
 import math
@@ -59,8 +59,8 @@ class fan:
     def __init__(self, stagpress, stagtemp, massflow):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
-        self.pressure_ratio = 4  # (2) page 2
-        self.efficiency = 0.857 # (3) page 6 table 1
+        self.pressure_ratioFan = 4  # (2) page 2
+        self.efficiencyFan = 0.91 # (3) table 3, isentropic flow
         self.massflow = massflow
         self.gamma = 1.4
         self.specificheat = 1004.5
@@ -68,11 +68,11 @@ class fan:
         # stagtemp change equation from (4) page 184, equation 5.49
     def stagnationTemperatureFan(self):
         gammaexpo = (self.gamma -1) / self.gamma
-        stagtempFan = self.stagtemp * (1 + (1/self.efficiency) * (self.pressure_ratio**gammaexpo - 1))
+        stagtempFan = self.stagtemp * (1 + (1/self.efficiencyFan) * (self.pressure_ratioFan**gammaexpo - 1))
         return stagtempFan
 
     def stagnationPressureFan(self):
-        stagPressFan = self.stagpress * self.pressure_ratio
+        stagPressFan = self.stagpress * self.pressure_ratioFan
         return stagPressFan
     
     def enthalpyRiseFan(self):
@@ -96,7 +96,7 @@ class fan:
 
 class bypassSplit:
     def __init__(self, stagpress, massflow, stagtemp):
-        self.bypaRatio = 0.45
+        self.bypaRatio = 0.45 # (3) table 3
         self.stagpress = stagpress
         self.stagtemp = stagtemp
         self.massflow = massflow
@@ -120,12 +120,42 @@ class bypassSplit:
 
 
 class highPressureCompressor:
-    def __init__(self, stagpress, stagtemp, hpcPressRatio, hpcEfficiency, massflow):
+    def __init__(self, stagpress, stagtemp, massflow):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
-        self.hpcPressRatio = hpcPressRatio
-        self.hpcEfficiency = hpcEfficiency
+        self.hpcPressRatio = 35
+        self.hpcEfficiency = 0.91 # (3) table 3, isentropic flow
         self.massflow = massflow
+        self.gamma = 1.4
+        self.specificheat = 1004.5
+
+    # stagtemp change equation from (4) page 184, equation 5.49
+    def stagnationTemperatureHPC(self):
+        gammaexpo = (self.gamma -1) / self.gamma
+        stagtempFan = self.stagtemp * (1 + (1/self.hpcEfficiency) * (self.hpcPressRatio**gammaexpo - 1))
+        return stagtempFan
+
+    def stagnationPressureHPC(self):
+        stagPressFan = self.stagpress * self.hpcPressRatio
+        return stagPressFan
+    
+    def enthalpyRiseHPC(self):
+        Tt_out = self.stagnationTemperatureHPC()
+        delta_h = self.specificheat * (Tt_out - self.stagtemp)
+        return delta_h  # [J/kg]
+    
+    def workRequiredHPC(self):
+        deltaH = self.enthalpyRiseHPC()
+        power_done = self.massflow * deltaH 
+        return power_done
+    
+    def compute(self):
+        return {
+            "Stagnation Temp (out)": self.stagnationTemperatureHPC(),
+            "Stagnation Press (out)": self.stagnationPressureHPC(),
+            "Enthalpy Rise": self.enthalpyRiseHPC(),
+            "HPC Work (W)": self.workRequiredHPC(),
+        }
 
 
 class combuster:
