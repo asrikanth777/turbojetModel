@@ -9,6 +9,7 @@
 - https://www.forecastinternational.com/archive/disp_pdf.cfm?DACH_RECNO=901 (2)
 - https://easychair.org/publications/preprint/CnsW/download? (3)
 - https://soaneemrana.com/onewebmedia/MECHANICS%20AND%20THERMODYNAMICS1.pdf (4)
+- https://www.sciencedirect.com/science/article/pii/S2666790825000424? (5)
 """
 import math
 import numpy as np
@@ -55,7 +56,7 @@ class inlet:
 
 
 class fan:
-    # three-stage fan
+    # three-stage axial flow fan
     def __init__(self, stagpress, stagtemp, massflow):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
@@ -120,10 +121,11 @@ class bypassSplit:
 
 
 class highPressureCompressor:
+# six stage axial flow compressor
     def __init__(self, stagpress, stagtemp, massflow):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
-        self.hpcPressRatio = 35
+        self.hpcPressRatio = 8.75 # (1) total pressure ratio / fan pressure ratio = hpc ratio
         self.hpcEfficiency = 0.91 # (3) table 3, isentropic flow
         self.massflow = massflow
         self.gamma = 1.4
@@ -142,7 +144,7 @@ class highPressureCompressor:
     def enthalpyRiseHPC(self):
         Tt_out = self.stagnationTemperatureHPC()
         delta_h = self.specificheat * (Tt_out - self.stagtemp)
-        return delta_h  # [J/kg]
+        return delta_h  
     
     def workRequiredHPC(self):
         deltaH = self.enthalpyRiseHPC()
@@ -159,16 +161,30 @@ class highPressureCompressor:
 
 
 class combuster:
-    def __init__(self, stagpress, stagtemp, titemp, massflow, combEfficiency, hPR):
+# annual combustion chamber
+    def __init__(self, stagpress, stagtemp, massflow):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
-        self.titemp = titemp
+        self.titemp = 1922 # Kelvin (5) table 3
         self.massflow = massflow
-        self.combEfficiency = combEfficiency
-        self.hPR = hPR
+        self.combustFHV = 43e6 # (3) table 4, only given JP4 and JP10, so roughly guess 43MJ/kg
+        self.combEfficiency = 0.90 # (3) introduction, last sentence, citing source about general turbofan engines
+        self.p_drop = 0.05 # common design ratio used, hangs around 0.04-0.07
+        self.specificheat = 1004.5
+
+    def heatAdded_combustor(self):
+        Q = self.massflow * self.specificheat * (self.titemp - self.stagtemp)
+        return Q
+    
+    def combustorfuel_flowrate(self):
+        Q = self.heatAdded_combustor()
+        mfuel = Q / self.combustFHV / self.combEfficiency 
+        return mfuel
+
 
 
 class highPressureTurbine:
+# one stage high pressure turbine
     def __init__(self, temp, press, massflow, requiredWork, efficiency):
         self.temp = temp
         self.press = press
@@ -179,6 +195,7 @@ class highPressureTurbine:
 
 
 class lowPressTurbine:
+# one stage low pressure turbine
     def __init__(self, temp, press, massflow, requiredWork, efficiency):
         self.temp = temp
         self.press = press
