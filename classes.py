@@ -176,10 +176,17 @@ class combuster:
         Q = self.massflow * self.specificheat * (self.titemp - self.stagtemp)
         return Q
     
-    def combustorfuel_flowrate(self):
+    def combustorfuel_flowrate(self): # (4) page 243
         Q = self.heatAdded_combustor()
         mfuel = Q / self.combustFHV / self.combEfficiency 
         return mfuel
+    
+    def stagnationTemperatureCombust(self):
+        return self.titemp
+
+    def stagnationPressureCombust(self):
+        stagPressComb = self.stagpress * (1 - self.p_drop)
+        return stagPressComb
 
 
 
