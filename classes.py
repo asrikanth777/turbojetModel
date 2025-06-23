@@ -31,29 +31,31 @@ class inlet:
 
         # Defining stagnation temp and pressure (ref: ae312 module 1 notes)
     def stagnationTemperatureInlet(self):
-        return self.temp * (1 + (self.gamma - 1)/2 * self.mach**2)
+        self.stagTempInlet = self.temp * (1 + (self.gamma - 1)/2 * self.mach**2)
+        return self.stagTempInlet
 
     def stagnationPressureInlet(self):
-        return self.press * (1 + (self.gamma - 1)/2 * self.mach**2)**(self.gamma / (self.gamma - 1))
-
+        self.stagPressInlet = self.press * (1 + (self.gamma - 1)/2 * self.mach**2)**(self.gamma / (self.gamma - 1))
+        return self.stagPressInlet
     
-    def massFlowCalc(self, mach, stagtemp, stagpress, inletArea, gamma, R):
-        factor = stagpress * inletArea / math.sqrt(stagtemp)
-        mach_term = mach * math.sqrt(gamma)
-        temp_term = (1 + ((gamma - 1) / 2) * mach**2) ** (-((gamma + 1) / (2 * (gamma - 1))))
+    def massFlowCalc(self):
 
-        mass_flow = factor * mach_term * temp_term
-        return mass_flow  # [kg/s]
+        factor = self.stagPressInlet * self.inletArea / math.sqrt(self.stagTempInlet)
+        mach_term = self.mach * math.sqrt(self.gamma)
+        temp_term = (1 + ((self.gamma - 1) / 2) * self.mach**2) ** (-((self.gamma + 1) / (2 * (self.gamma - 1))))
+        self.mass_flow = factor * mach_term * temp_term
+        return self.mass_flow  # [kg/s]
     
     def compute(self):
-        self.Tt0 = self.stagnationTemperatureInlet()
-        self.Pt0 = self.stagnationPressureInlet()
-        self.massflow = self.massFlowCalc()
+        self.stagnationTemperatureInlet()
+        self.stagnationPressureInlet()
+        self.massFlowCalc()
         return {
-        "Stagnation Temp (Tt0)": self.Tt0,
-        "Stagnation Press (Pt0)": self.Pt0,
-        "Mass Flow": self.massflow,
+        "Stagnation Temp (Tt0)": self.stagTempInlet,
+        "Stagnation Press (Pt0)": self.stagPressInlet,
+        "Mass Flow": self.mass_flow,
     }
+
 
 
 class fan:
@@ -70,29 +72,29 @@ class fan:
         # stagtemp change equation from (4) page 184, equation 5.49
     def stagnationTemperatureFan(self):
         gammaexpo = (self.gamma -1) / self.gamma
-        stagtempFan = self.stagtemp * (1 + (1/self.efficiencyFan) * (self.pressure_ratioFan**gammaexpo - 1))
-        return stagtempFan
+        self.stagtempFan = self.stagtemp * (1 + (1/self.efficiencyFan) * (self.pressure_ratioFan**gammaexpo - 1))
+        return self.stagtempFan
 
     def stagnationPressureFan(self):
-        stagPressFan = self.stagpress * self.pressure_ratioFan
-        return stagPressFan
+        self.stagPressFan = self.stagpress * self.pressure_ratioFan
+        return self.stagPressFan
     
     def enthalpyRiseFan(self):
         Tt_out = self.stagnationTemperatureFan()
-        delta_h = self.specificheat * (Tt_out - self.stagtemp)
-        return delta_h  # [J/kg]
+        self.deltaH_fan = self.specificheat * (Tt_out - self.stagtemp)
+        return self.deltaH_fan # [J/kg]
     
     def workRequiredFan(self):
         deltaH = self.enthalpyRiseFan()
-        power_done = self.massflow * deltaH 
-        return power_done
+        self.powerReq_fan = self.massflow * deltaH 
+        return self.powerReq_fan
     
     def compute(self):
         return {
-            "Stagnation Temp (out)": self.stagnationTemperatureFan(),
-            "Stagnation Press (out)": self.stagnationPressureFan(),
-            "Enthalpy Rise": self.enthalpyRiseFan(),
-            "Fan Work (W)": self.workRequiredFan(),
+            "Stagnation Temp (out)": self.stagtempFan,
+            "Stagnation Press (out)": self.stagPressFan,
+            "Enthalpy Rise": self.deltaH_fan,
+            "Fan Work (W)": self.powerReq_fan,
         }
 
 
@@ -103,20 +105,19 @@ class bypassSplit:
         self.stagtemp = stagtemp
         self.massflow = massflow
 
-
     # stag temp and pressure dont change across
     def massflowCore(self):
-        coreMF = self.massflow * (1 -self.bypaRatio)
-        return coreMF
+        self.coreMF = self.massflow / (1 + self.bypaRatio)
+        return self.coreMF
     
     def massflowBypass(self):
-        bypaMF = self.massflow * self.bypaRatio
-        return bypaMF
+        self.bypaMF = self.massflow - self.coreMF
+        return self.bypaMF
     
     def compute(self):
         return {
-            "Core Mass Flow": self.massflowCore(),
-            "Bypass Mass Flow": self.massflowBypass(),
+            "Core Mass Flow": self.coreMF,
+            "Bypass Mass Flow": self.bypaMF,
             "Bypass Ratio": self.bypaRatio,
         }
 
@@ -136,29 +137,29 @@ class highPressureCompressor:
     # stagtemp change equation from (4) page 184, equation 5.49
     def stagnationTemperatureHPC(self):
         gammaexpo = (self.gamma -1) / self.gamma
-        stagtempFan = self.stagtemp * (1 + (1/self.hpcEfficiency) * (self.hpcPressRatio**gammaexpo - 1))
-        return stagtempFan
+        self.stagtempHPC = self.stagtemp * (1 + (1/self.hpcEfficiency) * (self.hpcPressRatio**gammaexpo - 1))
+        return self.stagtempHPC
 
     def stagnationPressureHPC(self):
-        stagPressFan = self.stagpress * self.hpcPressRatio
-        return stagPressFan
+        self.stagPressHPC = self.stagpress * self.hpcPressRatio
+        return self.stagPressHPC
     
     def enthalpyRiseHPC(self):
         Tt_out = self.stagnationTemperatureHPC()
-        delta_h = self.specificheat * (Tt_out - self.stagtemp)
-        return delta_h  
+        self.deltaH_HPC = self.specificheat * (Tt_out - self.stagtemp)
+        return self.deltaH_HPC  
     
     def workRequiredHPC(self):
         deltaH = self.enthalpyRiseHPC()
-        power_done = self.massflow * deltaH 
-        return power_done
+        self.powerReq_HPC = self.massflow * deltaH 
+        return self.powerReq_HPC
     
     def compute(self):
         return {
-            "Stagnation Temp (out)": self.stagnationTemperatureHPC(),
-            "Stagnation Press (out)": self.stagnationPressureHPC(),
-            "Enthalpy Rise": self.enthalpyRiseHPC(),
-            "HPC Work (W)": self.workRequiredHPC(),
+            "Stagnation Temp (out)": self.stagtempHPC,
+            "Stagnation Press (out)": self.stagPressHPC,
+            "Enthalpy Rise": self.deltaH_HPC,
+            "HPC Work (W)": self.powerReq_HPC,
         }
 
 
@@ -175,20 +176,28 @@ class combuster:
         self.specificheat = 1004.5
 
     def heatAdded_combustor(self):
-        Q = self.massflow * self.specificheat * (self.titemp - self.stagtemp)
-        return Q
+        self.Q = self.massflow * self.specificheat * (self.titemp - self.stagtemp)
+        return self.Q
     
     def combustorfuel_flowrate(self): # (4) page 243
-        Q = self.heatAdded_combustor()
-        mfuel = Q / self.combustFHV / self.combEfficiency 
-        return mfuel
+        self.mfuel = self.heatAdded_combustor() / (self.combustFHV * self.combEfficiency) 
+        return self.mfuel
     
     def stagnationTemperatureCombust(self):
-        return self.titemp
+        self.stagTempComb = self.titemp # exit stag temp is turbine inlet temperature
+        return self.stagTempComb
 
     def stagnationPressureCombust(self):
-        stagPressComb = self.stagpress * (1 - self.p_drop)
-        return stagPressComb
+        self.stagPressComb = self.stagpress * (1 - self.p_drop)
+        return self.stagPressComb
+    
+    def compute(self):
+        return {
+            "Stagnation Temp (out)": self.stagTempComb,
+            "Stagnation Press (out)": self.stagPressComb,
+            "Heat Added": self.Q,
+            "Mass flow of fuel": self.mfuel,
+        }
 
 
 
@@ -206,16 +215,23 @@ class highPressureTurbine:
 
     def stagnationTemperatureHPT(self):
         delta_h = self.HPCrequiredWork / (self.massflow * self.efficiency)
-        stagTempHPT = self.stagtemp - (delta_h / self.specificheat)
-        return stagTempHPT
+        self.stagTempHPT = self.stagtemp - (delta_h / self.specificheat)
+        return self.stagTempHPT
 
     def stagnationPressureHPT(self):
-        T_out = highPressureTurbine.stagnationTemperatureHPT()
+        T_out = self.stagTempHPT
         T_ratio = T_out / self.stagtemp
         exponent = self.gamma / (self.gamma - 1)
         pressureRatio = (1 - (1/self.efficiency) * (1 - T_ratio)) ** exponent
-        stagPressHPT = pressureRatio * self.stagpress
-        return stagPressHPT
+        self.stagPressHPT = pressureRatio * self.stagpress
+        return self.stagPressHPT
+    
+    def compute(self):
+        return {
+            "Stagnation Temp (out)": self.stagTempHPT,
+            "Stagnation Press (out)": self.stagPressHPT,
+            "Work Generated (equal to HPC required)": self.HPCrequiredWork
+        }
 
 class lowPressureTurbine:
 # one stage low pressure turbine
@@ -231,16 +247,24 @@ class lowPressureTurbine:
 
     def stagnationTemperatureLPT(self):
         delta_h = self.fanRequiredWork / (self.massflow * self.efficiency)
-        stagTempLPT = self.stagtemp - (delta_h / self.specificheat)
-        return stagTempLPT
+        self.stagTempLPT = self.stagtemp - (delta_h / self.specificheat)
+        return self.stagTempLPT
 
     def stagnationPressureLPT(self):
-        T_out = lowPressureTurbine.stagnationTemperatureLPT()
+        T_out = self.stagTempLPT
         T_ratio = T_out / self.stagtemp
         exponent = self.gamma / (self.gamma - 1)
         pressureRatio = (1 - (1/self.efficiency) * (1 - T_ratio)) ** exponent
-        stagPressHPT = pressureRatio * self.stagpress
-        return stagPressHPT
+        self.stagPressLPT = pressureRatio * self.stagpress
+        return self.stagPressLPT
+
+    def compute(self):
+        return {
+            "Stagnation Temp (out)": self.stagTempLPT,
+            "Stagnation Press (out)": self.stagPressLPT,
+            "Work Generated (equal to fan required)": self.fanRequiredWork
+        }
+    
 
 """
 class afterBurner:
