@@ -25,9 +25,9 @@ class inlet:
         self.R = 287
 
         # inlet info comes from http://wikiwand.com/en/articles/Pratt_&_Whitney_F119
-        # an approximation of a 40in diameter at inlet
-        # 48in general diameter, 50in largest (no clue how to use these ones ngl)
-        self.inletArea = 0.811
+        # an approximation of a 100cm diameter at inlet
+        # 120cm general diameter, 130cm largest (no clue how to use these ones ngl)
+        self.inletArea = 0.7854 # m^2
 
         # Defining stagnation temp and pressure (ref: ae312 module 1 notes)
     def stagnationTemperatureInlet(self):
@@ -356,6 +356,35 @@ class nozzle:
         self.specificheat = 1004.5
         self.gamma = 1.4
         self.R = 287
+
+        # max mach of 2.25, using 130cm max diameter, calculating nozzle throat area
+        # finding throat, i can change nozzle exit area using isentropic relations and desired mach number
+        self.nozzleExitMax = 1.327 # m^2
+        self.topMach = 2.25
+        self.nozzleThroat = 0.463 # m^2
+
+    def nozzleExitSize(self, desiredMach):
+        M = desiredMach
+        gamma = self.gamma
+        area_ratio = (1 / M) * ((2 / (gamma + 1)) * (1 + (gamma - 1)/2 * M**2)) ** ((gamma + 1) / (2 * (gamma - 1)))
+        self.nozzleExit = self.nozzleThroat * area_ratio
+        return self.nozzleExit
+    
+    def staticTemperatureNozzle(self, desiredMach):
+        self.tempNozzle = self.stagtemp / (1 + (self.gamma - 1)/2 * desiredMach**2)
+        return self.tempNozzle
+
+    def staticPressureNozzle(self, desiredMach):
+        self.pressNozzle = self.stagpress / (1 + (self.gamma - 1)/2 * desiredMach**2)**(self.gamma / (self.gamma - 1))
+        return self.pressNozzle
+
+
+
+
+
+
+
+
 
 
 class exhaust:
