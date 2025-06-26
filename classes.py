@@ -268,7 +268,40 @@ class lowPressureTurbine:
             "Work Generated (equal to fan required)": self.fanRequiredWork
         }
     
+class mixer:
+    def __init__(self, coremassflow, lptstagtemp, lptstagpress, bypassmassflow, fanstagtemp, fanstagpress):
+        self.coremassflow = coremassflow
+        self.lptstagtemp = lptstagtemp
+        self.lptstagpress = lptstagpress
+        self.bypassmassflow = bypassmassflow
+        self.fanstagtemp = fanstagtemp
+        self.fanstagpress = fanstagpress
+        self.specificheat = 1004.5
+        self.gamma = 1.4
+        self.p_drop = 0.01 # (7) page 9 on mixer performance, between 0.9-1.2 mach 8 and 0.8-1.1 mach 1.4
 
+    def mixedMassFlow(self):
+        self.mixedMF = self.coremassflow + self.bypassmassflow
+        return self.mixedMF
+    
+    def mixedStagnationTemperature(self):
+        self.stagTempMixed = (self.coremassflow * self.lptstagtemp + \
+            self.bypassmassflow * self.fanstagtemp) / self.mixedMF
+        return self.stagTempMixed
+
+    def mixedStagnationPressure(self): # simplification, assuming lower stagpress to not risk having higher pressure
+        self.stagPressMixed = min(self.fanstagpress, self.lptstagpress) * (1 - self.p_drop)
+        return self.stagPressMixed
+    
+    def compute(self):
+        self.mixedMassFlow()
+        self.mixedStagnationTemperature()
+        self.mixedStagnationPressure()
+        return {
+            "Mixed Mass Flow": self.mixedMF,
+            "Stagnation Temp (out)": self.stagTempMixed,
+            "Stagnation Press (out)": self.stagPressMixed
+        }
 
 class afterBurner:
     def __init__(self, stagtemp, stagpress, massflow):
@@ -311,40 +344,6 @@ class afterBurner:
             "Mass flow of fuel": self.mfuel,
         }
     
-class mixer:
-    def __init__(self, coremassflow, lptstagtemp, lptstagpress, bypassmassflow, fanstagtemp, fanstagpress):
-        self.coremassflow = coremassflow
-        self.lptstagtemp = lptstagtemp
-        self.lptstagpress = lptstagpress
-        self.bypassmassflow = bypassmassflow
-        self.fanstagtemp = fanstagtemp
-        self.fanstagpress = fanstagpress
-        self.specificheat = 1004.5
-        self.gamma = 1.4
-
-    def mixedMassFlow(self):
-        self.mixedMF = self.coremassflow + self.bypassmassflow
-        return self.mixedMF
-    
-    def mixedStagnationTemperature(self):
-        self.stagTempMixed = (self.coremassflow * self.lptstagtemp + \
-            self.bypassmassflow * self.fanstagtemp) / self.mixedMF
-        return self.stagTempMixed
-
-    def mixedStagnationPressure(self):
-        self.stagPressMixed = (self.coremassflow * self.lptstagpress + \
-            self.bypassmassflow * self.fanstagpress) / self.mixedMF
-        return self.stagPressMixed
-    
-    def compute(self):
-        self.mixedMassFlow()
-        self.mixedStagnationTemperature()
-        self.mixedStagnationPressure()
-        return {
-            "Mixed Mass Flow": self.mixedMF,
-            "Stagnation Temp (out)": self.stagTempMixed,
-            "Stagnation Press (out)": self.stagPressMixed
-        }
 
 
 class nozzle:
