@@ -347,7 +347,7 @@ class afterBurner:
 
 
 class nozzle:
-    def __init__(self, stagtemp, stagpress, ambpress, massflow, nozzleEff):
+    def __init__(self, stagtemp, stagpress, ambpress, massflow, nozzleEff, desiredMach):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
         self.ambpress = ambpress
@@ -362,28 +362,27 @@ class nozzle:
         self.nozzleExitMax = 1.327 # m^2
         self.topMach = 2.25
         self.nozzleThroat = 0.463 # m^2
+        self.desiredMach = desiredMach
 
-    def nozzleExitSize(self, desiredMach):
-        M = desiredMach
+    def nozzleExitSize(self):
+        M = self.desiredMach
         gamma = self.gamma
         area_ratio = (1 / M) * ((2 / (gamma + 1)) * (1 + (gamma - 1)/2 * M**2)) ** ((gamma + 1) / (2 * (gamma - 1)))
         self.nozzleExit = self.nozzleThroat * area_ratio
         return self.nozzleExit
     
-    def staticTemperatureNozzle(self, desiredMach):
-        self.tempNozzle = self.stagtemp / (1 + (self.gamma - 1)/2 * desiredMach**2)
+    def staticTemperatureNozzle(self):
+        self.tempNozzle = self.stagtemp / (1 + (self.gamma - 1)/2 * self.desiredMach**2)
         return self.tempNozzle
 
-    def staticPressureNozzle(self, desiredMach):
-        self.pressNozzle = self.stagpress / (1 + (self.gamma - 1)/2 * desiredMach**2)**(self.gamma / (self.gamma - 1))
+    def staticPressureNozzle(self):
+        self.pressNozzle = self.stagpress / (1 + (self.gamma - 1)/2 * self.desiredMach**2)**(self.gamma / (self.gamma - 1))
         return self.pressNozzle
 
-
-
-
-
-
-
+    def nozzleExitVelocity(self):
+        a = math.sqrt(self.gamma * self.R * self.tempNozzle)
+        self.nozzleVelocity = a * self.desiredMach
+        return self.nozzleVelocity
 
 
 
