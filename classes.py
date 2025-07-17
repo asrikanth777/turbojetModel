@@ -90,6 +90,10 @@ class fan:
         return self.powerReq_fan
     
     def compute(self):
+        self.stagnationTemperatureFan()
+        self.stagnationPressureFan()
+        self.enthalpyRiseFan()
+        self.workRequiredFan()
         return {
             "Stagnation Temp (out)": self.stagtempFan,
             "Stagnation Press (out)": self.stagPressFan,
@@ -115,6 +119,8 @@ class bypassSplit:
         return self.bypaMF
     
     def compute(self):
+        self.massflowCore()
+        self.massflowBypass()
         return {
             "Core Mass Flow": self.coreMF,
             "Bypass Mass Flow": self.bypaMF,
@@ -155,6 +161,10 @@ class highPressureCompressor:
         return self.powerReq_HPC
     
     def compute(self):
+        self.stagnationTemperatureHPC()
+        self.stagnationPressureHPC()
+        self.enthalpyRiseHPC()
+        self.workRequiredHPC()
         return {
             "Stagnation Temp (out)": self.stagtempHPC,
             "Stagnation Press (out)": self.stagPressHPC,
@@ -163,7 +173,7 @@ class highPressureCompressor:
         }
 
 
-class combuster:
+class combustor:
 # annual combustion chamber
     def __init__(self, stagpress, stagtemp, massflow):
         self.stagpress = stagpress
@@ -191,13 +201,20 @@ class combuster:
     def stagnationPressureCombust(self):
         self.stagPressComb = self.stagpress * (1 - self.p_drop)
         return self.stagPressComb
+
     
     def compute(self):
+        self.heatAdded_combustor()
+        self.combustorfuel_flowrate()
+        self.stagnationTemperatureCombust()
+        self.stagnationPressureCombust()
+        self.massFlowTotal = self.mfuel + self.massflow
         return {
             "Stagnation Temp (out)": self.stagTempComb,
             "Stagnation Press (out)": self.stagPressComb,
             "Heat Added": self.Q,
             "Mass flow of fuel": self.mfuel,
+            "Total Mass Flow": self.massFlowTotal
         }
 
 
@@ -230,6 +247,8 @@ class highPressureTurbine:
         return self.stagPressHPT
     
     def compute(self):
+        self.stagnationTemperatureHPT()
+        self.stagnationPressureHPT()
         return {
             "Stagnation Temp (out)": self.stagTempHPT,
             "Stagnation Press (out)": self.stagPressHPT,
@@ -262,6 +281,8 @@ class lowPressureTurbine:
         return self.stagPressLPT
 
     def compute(self):
+        self.stagnationTemperatureLPT()
+        self.stagnationPressureLPT()
         return {
             "Stagnation Temp (out)": self.stagTempLPT,
             "Stagnation Press (out)": self.stagPressLPT,
@@ -347,12 +368,12 @@ class afterBurner:
 
 
 class nozzle:
-    def __init__(self, stagtemp, stagpress, ambpress, massflow, nozzleEff, desiredMach):
+    def __init__(self, stagtemp, stagpress, ambpress, massflow, desiredMach):
         self.stagpress = stagpress
         self.stagtemp = stagtemp
         self.ambpress = ambpress
         self.massflow = massflow
-        self.nozzleEff = nozzleEff
+        self.nozzleEff = 0.97 # approximation
         self.specificheat = 1004.5
         self.gamma = 1.4
         self.R = 287
@@ -383,6 +404,19 @@ class nozzle:
         a = math.sqrt(self.gamma * self.R * self.tempNozzle)
         self.nozzleVelocity = a * self.desiredMach
         return self.nozzleVelocity
+    
+    def compute(self):
+        self.nozzleExitSize()
+        self.staticTemperatureNozzle()
+        self.staticPressureNozzle()
+        self.nozzleExitVelocity()
+
+        return {
+            "Nozzle Exit Size": self.nozzleExit,
+            "Nozzle Exit Velocity": self.nozzleVelocity,
+            "Static Temp (out)": self.tempNozzle,
+            "Static Press (out)": self.pressNozzle,
+        }
 
 
 
