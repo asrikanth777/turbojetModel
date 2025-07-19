@@ -11,6 +11,7 @@
 - https://soaneemrana.com/onewebmedia/MECHANICS%20AND%20THERMODYNAMICS1.pdf (4)
 - https://www.sciencedirect.com/science/article/pii/S2666790825000424? (5)
 https://www.researchgate.net/publication/352295971_Efficiencies_and_losses_comparison_of_various_turbofan_engines_for_aircraft_propulsion (6)
+https://www.grc.nasa.gov/www/k-12/VirtualAero/BottleRocket/airplane/thrsteq.html(7)
 """
 import math
 import numpy as np
@@ -427,14 +428,46 @@ class nozzle:
 
 
 class exhaust:
-    def __init__(self, noz_exitV, massflow, fuel_flow, fuel_heatingval, noz_area, noz_press):
+    def __init__(self, noz_exitV, massflow, fuel_flow, fuel_heatingval, noz_area, noz_press, ambpress, fsV):
         self.noz_exitV = noz_exitV
         self.massflow = massflow
         self.fuel_flow = fuel_flow
         self.fuel_heatingval = fuel_heatingval
         self.noz_area = noz_area
         self.noz_press = noz_press
+        self.ambpress = ambpress # kpa
+        self.fsV = fsV
 
+    def netThrust(self):
+        # from (7), continuity equation of momentum, thrust is 
+        # mdot(ve - vo) + (pe - po)Ae
+        # assume freestream velocity is zero
+        self.thrust = self.massflow * (self.noz_exitV - self.fsV) + (self.noz_press - self.ambpress)*self.noz_area
+        return self.thrust
+
+    def thrustSpecificFuelConsump(self):
+        self.tSFC = self.fuel_flow / self.thrust
+        return self.tSFC
+    
+    def specificThrust(self):
+        self.specThrust = self.thrust / (self.massflow - self.fuel_flow)
+        return self.specThrust
+    
+    def thermalEfficiency(self):
+        top = 0.5 * self.massflow * self.noz_exitV**2
+        bottom = self.fuel_flow * self.fuel_heatingval
+        self.thermEfficiency = top / bottom
+        return self.thermEfficiency
+
+    def compute(self):
+        self.netThrust()
+        self.thrustSpecificFuelConsump()
+        return{
+            "Net Thrust": self.thrust,
+            "Thrust Specific Fuel Consumption": self.tSFC,
+            "Specific Thrust":self.specThrust,
+            "Thermal Efficiency":self.thermEfficiency
+        }
 
 
 
