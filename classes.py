@@ -345,6 +345,11 @@ class afterBurner:
         self.mfuel = self.heatAdded_afterburner() / (self.afterburnerFHV * self.afterburnerEfficiency) 
         return self.mfuel
     
+    def totalExitMassFlow(self):
+        # Air+core flow already in self.massflow; add afterburner fuel
+        self.afMassFlow = self.massflow + self.mfuel
+        return self.afMassFlow
+    
     def stagnationTemperatureAfterburner(self):
         self.stagTempAF = self.afterburnertemp # exit stag temp is turbine inlet temperature
         return self.stagTempAF
@@ -358,14 +363,15 @@ class afterBurner:
         self.stagnationPressureAfterburner()
         self.heatAdded_afterburner()
         self.afterburnerfuel_flowrate()
+        self.totalExitMassFlow()
         return {
             "Stagnation Temp (out)": self.stagTempAF,
             "Stagnation Press (out)": self.stagPressAF,
             "Heat Added": self.Q,
             "Mass flow of fuel": self.mfuel,
+            "Total Mass flow":self.afMassFlow
         }
     
-
 
 class nozzle:
     def __init__(self, stagtemp, stagpress, ambpress, massflow, desiredMach):
@@ -421,13 +427,14 @@ class nozzle:
 
 
 class exhaust:
-    def __init__(self, noz_exitV, byp_exitV, freestrmV, massflow, bypaRatio, fuel_flow, fuel_heatingval):
+    def __init__(self, noz_exitV, massflow, fuel_flow, fuel_heatingval, noz_area, noz_press):
         self.noz_exitV = noz_exitV
-        self.byp_exitV = byp_exitV
-        self.freestrmV = freestrmV
         self.massflow = massflow
-        self.bypaRatio = bypaRatio
         self.fuel_flow = fuel_flow
         self.fuel_heatingval = fuel_heatingval
+        self.noz_area = noz_area
+        self.noz_press = noz_press
+
+
 
 
