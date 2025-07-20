@@ -24,6 +24,7 @@ class inlet:
         self.temp = temp
         self.gamma = 1.4
         self.R = 287
+        self.p_drop = 0.02
 
         # inlet info comes from http://wikiwand.com/en/articles/Pratt_&_Whitney_F119
         # an approximation of a 100cm diameter at inlet
@@ -37,11 +38,11 @@ class inlet:
 
     def stagnationPressureInlet(self):
         self.stagPressInlet = self.press * (1 + (self.gamma - 1)/2 * self.mach**2)**(self.gamma / (self.gamma - 1))
-        return self.stagPressInlet
+        return self.stagPressInlet * (1 - self.p_drop)
     
     def massFlowCalc(self):
 
-        factor = self.stagPressInlet * self.inletArea / math.sqrt(self.stagTempInlet)
+        factor = self.stagPressInlet * self.inletArea / math.sqrt(self.R * self.stagTempInlet)
         mach_term = self.mach * math.sqrt(self.gamma)
         temp_term = (1 + ((self.gamma - 1) / 2) * self.mach**2) ** (-((self.gamma + 1) / (2 * (self.gamma - 1))))
         self.mass_flow = factor * mach_term * temp_term
@@ -240,11 +241,9 @@ class highPressureTurbine:
         return self.stagTempHPT
 
     def stagnationPressureHPT(self):
-        T_out = self.stagTempHPT
-        T_ratio = T_out / self.stagtemp
+        T_ratio = self.stagTempHPT / self.stagtemp
         exponent = self.gamma / (self.gamma - 1)
-        pressureRatio = (1 - (1/self.efficiency) * (1 - T_ratio)) ** exponent
-        self.stagPressHPT = pressureRatio * self.stagpress
+        self.stagPressHPT = self.stagpress * (T_ratio ** exponent)
         return self.stagPressHPT
     
     def compute(self):
@@ -274,11 +273,9 @@ class lowPressureTurbine:
         return self.stagTempLPT
 
     def stagnationPressureLPT(self):
-        T_out = self.stagTempLPT
-        T_ratio = T_out / self.stagtemp
+        T_ratio = self.stagTempLPT / self.stagtemp
         exponent = self.gamma / (self.gamma - 1)
-        pressureRatio = (1 - (1/self.efficiency) * (1 - T_ratio)) ** exponent
-        self.stagPressLPT = pressureRatio * self.stagpress
+        self.stagPressLPT = self.stagpress * (T_ratio ** exponent)
         return self.stagPressLPT
 
     def compute(self):
@@ -427,15 +424,16 @@ class nozzle:
     
 
 class exhaust:
-    def __init__(self, noz_exitV, massflow, fuel_flow, fuel_heatingval, noz_area, noz_press, ambpress, fsV):
+    def __init__(self, noz_exitV, massflow, fuel_flow, noz_area, noz_press, ambpress, fsV):
         self.noz_exitV = noz_exitV
         self.massflow = massflow
         self.fuel_flow = fuel_flow
-        self.fuel_heatingval = fuel_heatingval
+        self.fuel_heatingval = 43e6
         self.noz_area = noz_area
         self.noz_press = noz_press
         self.ambpress = ambpress # kpa
         self.fsV = fsV
+        self.airflow = self.massflow - self.fuel_flow
 
     def netThrust(self):
         # from (7), continuity equation of momentum, thrust is 
@@ -449,7 +447,7 @@ class exhaust:
         return self.tSFC
     
     def specificThrust(self):
-        self.specThrust = self.thrust / (self.massflow - self.fuel_flow)
+        self.specThrust = self.thrust / self.airflow
         return self.specThrust
     
     def thermalEfficiency(self):
@@ -464,6 +462,7 @@ class exhaust:
         self.specificThrust()
         self.thermalEfficiency()
         return{
+            "Air Mass Flow" : self.airflow,
             "Net Thrust": self.thrust,
             "Thrust Specific Fuel Consumption": self.tSFC,
             "Specific Thrust":self.specThrust,

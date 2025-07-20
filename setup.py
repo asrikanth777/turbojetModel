@@ -97,11 +97,13 @@ if mode == wet:
     afterburnerStagTemp = afterburner_results["Stagnation Temp (out)"]
     afterburnerStagPress = afterburner_results["Stagnation Press (out)"]
     afterBurnerFuelFlow = afterburner_results["Mass flow of fuel"]
+    totalFuelFlow = afterBurnerFuelFlow + combustorFuelflow
     totalMassFlow = afterburner_results["Total Mass flow"]
 
 else:  # dry mode
     # No afterburner, so just use the mixed stream
     totalMassFlow = mixerMassFlow
+    totalFuelFlow = combustorFuelflow
     afterBurnerFuelFlow = 0
     afterburnerStagTemp = mixerStagTemp
     afterburnerStagPress = mixerStagPress
@@ -118,8 +120,8 @@ nozPress = nozzle_results["Static Press (out)"]
 
 # ------------------------------------------------------------------------------------------------
 # exhaust
-
-
+exhaust_obj = exhaust(nozExitVel, totalMassFlow, totalFuelFlow, nozExitSize, nozPress, P_ambient, 0)
+exhaust_results = exhaust_obj.compute()
 
 
 
