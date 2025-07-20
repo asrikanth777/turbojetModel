@@ -424,8 +424,7 @@ class nozzle:
             "Static Temp (out)": self.tempNozzle,
             "Static Press (out)": self.pressNozzle,
         }
-
-
+    
 
 class exhaust:
     def __init__(self, noz_exitV, massflow, fuel_flow, fuel_heatingval, noz_area, noz_press, ambpress, fsV):
@@ -462,6 +461,8 @@ class exhaust:
     def compute(self):
         self.netThrust()
         self.thrustSpecificFuelConsump()
+        self.specificThrust()
+        self.thermalEfficiency()
         return{
             "Net Thrust": self.thrust,
             "Thrust Specific Fuel Consumption": self.tSFC,

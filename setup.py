@@ -89,34 +89,37 @@ mixerStagTemp = mixer_results["Stagnation Temp (out)"]
 mixerStagPress = mixer_results["Stagnation Press (out)"]
 
 # ------------------------------------------------------------------------------------------------
-# now handling different run modes
+# now handling different run modes with afterburner
 if mode == wet:
-    # afterburner
     afterburner_obj = afterBurner(mixerStagTemp, mixerStagPress, mixerMassFlow)
     afterburner_results = afterburner_obj.compute()
 
     afterburnerStagTemp = afterburner_results["Stagnation Temp (out)"]
     afterburnerStagPress = afterburner_results["Stagnation Press (out)"]
-    afterburnerQ = afterburner_results["Heat Added"]
     afterBurnerFuelFlow = afterburner_results["Mass flow of fuel"]
-    afterBurnerMassFlow = afterburner_results["Total Mass flow"]
+    totalMassFlow = afterburner_results["Total Mass flow"]
 
-    nozzle_obj = nozzle(afterburnerStagTemp, afterburnerStagPress, P_ambient, afterBurnerMassFlow, mach)
-    nozzle_results = nozzle_obj.compute()
+else:  # dry mode
+    # No afterburner, so just use the mixed stream
+    totalMassFlow = mixerMassFlow
+    afterBurnerFuelFlow = 0
+    afterburnerStagTemp = mixerStagTemp
+    afterburnerStagPress = mixerStagPress
 
-    nozExitSize = nozzle_results["Nozzle Exit Size"]
-    nozExitVel = nozzle_results["Nozzle Exit Velocity"]
-    nozTemp = nozzle_results["Static Temp (out)"]
-    nozPress = nozzle_results["Static Press (out)"]
+# ------------------------------------------------------------------------------------------------
+# nozzle
+nozzle_obj = nozzle(afterburnerStagTemp, afterburnerStagPress, P_ambient, totalMassFlow, mach)
+nozzle_results = nozzle_obj.compute()
 
-elif mode == dry:
-    nozzle_obj = nozzle(mixerStagTemp, mixerStagPress, P_ambient, mixerMassFlow, mach)
-    nozzle_results = nozzle_obj.compute()
+nozExitSize = nozzle_results["Nozzle Exit Size"]
+nozExitVel = nozzle_results["Nozzle Exit Velocity"]
+nozTemp = nozzle_results["Static Temp (out)"]
+nozPress = nozzle_results["Static Press (out)"]
 
-    nozExitSize = nozzle_results["Nozzle Exit Size"]
-    nozExitVel = nozzle_results["Nozzle Exit Velocity"]
-    nozTemp = nozzle_results["Static Temp (out)"]
-    nozPress = nozzle_results["Static Press (out)"] 
+# ------------------------------------------------------------------------------------------------
+# exhaust
+
+
 
 
 
